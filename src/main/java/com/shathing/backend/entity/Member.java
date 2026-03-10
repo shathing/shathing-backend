@@ -21,9 +21,18 @@ public class Member extends BaseTimeEntity{
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(nullable = false)
+    private  String username;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MemberStatus status;
+
+    public Member(String email, String username, MemberStatus status) {
+        this.email = email;
+        this.username = username;
+        this.status = status;
+    }
 
     public void activate() {
         this.status = MemberStatus.ACTIVE;

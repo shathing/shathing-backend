@@ -52,6 +52,7 @@ public class MemberService {
                 .orElseGet(() -> memberRepository.save(
                         Member.builder()
                                 .email(email)
+                                .username(extractUsername(email))
                                 .status(MemberStatus.PENDING)
                                 .build()
                 ));
@@ -127,6 +128,11 @@ public class MemberService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
         return new MemberResponse(member.getId(), member.getEmail());
+    }
+
+    private String extractUsername(String email) {
+        String[] split = email.split("@");
+        return split[0];
     }
 
     private String generateRawToken() {
