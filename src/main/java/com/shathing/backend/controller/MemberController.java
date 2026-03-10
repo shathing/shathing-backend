@@ -3,6 +3,7 @@ package com.shathing.backend.controller;
 import com.shathing.backend.dto.request.SendAuthEmailRequest;
 import com.shathing.backend.dto.request.VerifyAuthEmailRequest;
 import com.shathing.backend.dto.response.AuthTokenResponse;
+import com.shathing.backend.dto.response.MemberResponse;
 import com.shathing.backend.dto.response.VerifyAuthTokenResponse;
 import com.shathing.backend.service.MemberService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,6 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -53,5 +56,10 @@ public class MemberController {
 
         servletResponse.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
         return ResponseEntity.ok(new VerifyAuthTokenResponse(tokenResponse.getAccessToken()));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<MemberResponse> getMember(@AuthenticationPrincipal Long memberId) {
+        return ResponseEntity.ok(memberService.getMember(memberId));
     }
 }

@@ -3,6 +3,7 @@ package com.shathing.backend.service;
 import com.shathing.backend.common.JwtProvider;
 import com.shathing.backend.dto.request.SendAuthEmailRequest;
 import com.shathing.backend.dto.response.AuthTokenResponse;
+import com.shathing.backend.dto.response.MemberResponse;
 import com.shathing.backend.entity.EmailAuthToken;
 import com.shathing.backend.entity.Member;
 import com.shathing.backend.entity.MemberStatus;
@@ -119,6 +120,13 @@ public class MemberService {
         String accessToken = jwtProvider.createAccessToken(member);
         String refreshToken = jwtProvider.createRefreshToken(member);
         return new AuthTokenResponse(accessToken, refreshToken);
+    }
+
+    @Transactional(readOnly = true)
+    public MemberResponse getMember(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+        return new MemberResponse(member.getId(), member.getEmail());
     }
 
     private String generateRawToken() {
