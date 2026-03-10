@@ -1,6 +1,5 @@
 package com.shathing.backend.dto.response;
 
-import com.shathing.backend.entity.MemberStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -8,6 +7,6 @@ import lombok.Getter;
 @AllArgsConstructor
 public class MemberResponse {
 
-    private Long memberId;
     private String email;
+    private String username;
 }
