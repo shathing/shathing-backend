@@ -1,6 +1,7 @@
 package com.shathing.backend.service;
 
 import com.shathing.backend.common.JwtProvider;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.shathing.backend.dto.request.SendAuthEmailRequest;
 import com.shathing.backend.dto.response.AuthTokenResponse;
 import com.shathing.backend.dto.response.MemberResponse;
@@ -128,6 +129,24 @@ public class MemberService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
         return new MemberResponse(member.getEmail(), member.getUsername());
+    }
+
+    @Transactional(readOnly = true)
+    public String reissueAccessToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new IllegalArgumentException("리프레시 토큰이 없습니다.");
+        }
+
+        DecodedJWT decodedRefreshToken = jwtProvider.parseRefreshToken(refreshToken);
+        Long memberId = Long.parseLong(decodedRefreshToken.getSubject());
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        if (member.getStatus() == MemberStatus.SUSPENDED || member.getStatus() == MemberStatus.DELETED) {
+            throw new IllegalStateException("로그인할 수 없는 계정 상태입니다.");
+        }
+
+        return jwtProvider.createAccessToken(member);
     }
 
     private String extractUsername(String email) {

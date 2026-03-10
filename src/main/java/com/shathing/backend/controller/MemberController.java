@@ -14,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -56,6 +57,14 @@ public class MemberController {
 
         servletResponse.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
         return ResponseEntity.ok(new VerifyAuthTokenResponse(tokenResponse.getAccessToken()));
+    }
+
+    @PostMapping("/auth/refresh")
+    public ResponseEntity<VerifyAuthTokenResponse> refreshAccessToken(
+            @CookieValue(value = "refreshToken", required = false) String refreshToken
+    ) {
+        String accessToken = memberService.reissueAccessToken(refreshToken);
+        return ResponseEntity.ok(new VerifyAuthTokenResponse(accessToken));
     }
 
     @GetMapping("/me")

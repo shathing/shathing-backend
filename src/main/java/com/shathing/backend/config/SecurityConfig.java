@@ -22,7 +22,8 @@ public class SecurityConfig {
 
 	private static final String[] WHITELIST = {
 			"/auth/send-email",
-			"/auth/verify-token"
+			"/auth/verify-token",
+			"/auth/refresh"
 	};
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
