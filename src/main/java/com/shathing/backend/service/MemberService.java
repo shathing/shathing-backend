@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Base64;
 
 @Service
@@ -39,8 +39,8 @@ public class MemberService {
     private String appName;
     @Value("${APP_FRONTEND_URL}")
     private String appFrontendUrl;
-    @Value("${AUTH_TOKEN_TTL_DAYS:1}")
-    private int authTokenTTLDays;
+    @Value("${AUTH_TOKEN_EXPIRATION_SECONDS}")
+    private long authTokenExpirationSeconds;
 
     @Transactional
     public void sendAuthEmail(SendAuthEmailRequest request) {
@@ -62,10 +62,10 @@ public class MemberService {
             throw new IllegalStateException("로그인할 수 없는 계정 상태입니다.");
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         String rawToken = generateRawToken();
         String tokenHash = sha256(rawToken);
-        LocalDateTime expiresAt = now.plusDays(authTokenTTLDays);
+        Instant expiresAt = now.plusSeconds(authTokenExpirationSeconds);
 
         emailAuthTokenRepository.findByMember_Id(member.getId())
                 .ifPresentOrElse(
@@ -100,7 +100,7 @@ public class MemberService {
 
     @Transactional
     public AuthTokenResponse verifyAuthEmail(String token) {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         String tokenHash = sha256(token);
 
         EmailAuthToken emailAuthToken = emailAuthTokenRepository.findByTokenHash(tokenHash)
@@ -143,7 +143,7 @@ public class MemberService {
 
     @Transactional
     public int cleanupOldEmailAuthTokens() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
         return emailAuthTokenRepository.deleteByExpiresAtBefore(now);
     }
 }

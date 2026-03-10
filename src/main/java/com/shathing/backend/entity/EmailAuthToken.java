@@ -14,7 +14,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Getter
@@ -35,13 +35,13 @@ public class EmailAuthToken {
     private String tokenHash;
 
     @Column(nullable = false)
-    private LocalDateTime expiresAt;
+    private Instant expiresAt;
 
-    public boolean isExpired(LocalDateTime now) {
+    public boolean isExpired(Instant now) {
         return expiresAt.isBefore(now);
     }
 
-    public void refreshToken(String tokenHash, LocalDateTime expiresAt) {
+    public void refreshToken(String tokenHash, Instant expiresAt) {
         this.tokenHash = tokenHash;
         this.expiresAt = expiresAt;
     }

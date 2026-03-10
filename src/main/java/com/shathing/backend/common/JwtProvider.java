@@ -34,7 +34,6 @@ public class JwtProvider {
         return JWT.create()
                 .withIssuer(appName)
                 .withSubject(String.valueOf(member.getId()))
-                .withClaim("email", member.getEmail())
                 .withClaim(TOKEN_TYPE_CLAIM, ACCESS_TOKEN_TYPE)
                 .withIssuedAt(now)
                 .withExpiresAt(now.plusSeconds(accessTokenExpirationSeconds))
