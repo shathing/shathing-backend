@@ -31,8 +31,14 @@ public class MemberController {
     private boolean cookieSecure;
     @Value("${COOKIE_SAMESITE:Lax}")
     private String cookieSameSite;
+    @Value("${JWT_ACCESS_TOKEN_EXPIRATION_SECONDS}")
+    private long accessTokenExpirationSeconds;
     @Value("${JWT_REFRESH_TOKEN_EXPIRATION_SECONDS}")
     private long refreshTokenExpirationSeconds;
+
+
+    private final static String ACCESS_TOKEN = "accessToken";
+    private final static String REFRESH_TOKEN = "refreshToken";
 
     @PostMapping("/auth/send-email")
     public ResponseEntity<Void> sendAuthEmail(@Valid @RequestBody SendAuthEmailRequest request) {
@@ -47,28 +53,36 @@ public class MemberController {
     ) {
         AuthTokenResponse tokenResponse = memberService.verifyAuthEmail(request.getToken());
 
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", tokenResponse.getRefreshToken())
-                .httpOnly(true)
-                .secure(cookieSecure)
-                .sameSite(cookieSameSite)
-                .path("/")
-                .maxAge(Duration.ofSeconds(refreshTokenExpirationSeconds))
-                .build();
-
-        servletResponse.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+        servletResponse.addHeader(HttpHeaders.SET_COOKIE,
+                buildTokenCookie(ACCESS_TOKEN, tokenResponse.getAccessToken(), accessTokenExpirationSeconds).toString());
+        servletResponse.addHeader(HttpHeaders.SET_COOKIE,
+                buildTokenCookie(REFRESH_TOKEN, tokenResponse.getRefreshToken(), refreshTokenExpirationSeconds).toString());
         return ResponseEntity.ok(new VerifyAuthTokenResponse(tokenResponse.getAccessToken()));
     }
 
     @PostMapping("/auth/refresh")
-    public ResponseEntity<VerifyAuthTokenResponse> refreshAccessToken(
-            @CookieValue(value = "refreshToken", required = false) String refreshToken
+    public ResponseEntity<Void> refreshAccessToken(
+            @CookieValue(value = REFRESH_TOKEN, required = false) String refreshToken,
+            HttpServletResponse servletResponse
     ) {
         String accessToken = memberService.reissueAccessToken(refreshToken);
-        return ResponseEntity.ok(new VerifyAuthTokenResponse(accessToken));
+        servletResponse.addHeader(HttpHeaders.SET_COOKIE,
+                buildTokenCookie(ACCESS_TOKEN, accessToken, accessTokenExpirationSeconds).toString());
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/me")
     public ResponseEntity<MemberResponse> getMember(@AuthenticationPrincipal Long memberId) {
         return ResponseEntity.ok(memberService.getMember(memberId));
+    }
+
+    private ResponseCookie buildTokenCookie(String name, String value, long maxAgeSeconds) {
+        return ResponseCookie.from(name, value)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite(cookieSameSite)
+                .path("/")
+                .maxAge(Duration.ofSeconds(maxAgeSeconds))
+                .build();
     }
 }
