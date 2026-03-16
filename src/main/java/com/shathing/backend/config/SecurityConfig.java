@@ -23,7 +23,8 @@ public class SecurityConfig {
 	private static final String[] WHITELIST = {
 			"/auth/send-email",
 			"/auth/verify-token",
-			"/auth/refresh"
+			"/auth/refresh",
+			"/legal-dongs"
 	};
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
