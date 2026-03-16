@@ -25,3 +25,8 @@ spring:
     properties.mail.smtp:
       auth: true
       starttls.enable: true
+
+app:
+  legal-dong:
+    initialize-on-startup: false
+    csv-path: data/국토교통부_전국 법정동_20250807.csv
