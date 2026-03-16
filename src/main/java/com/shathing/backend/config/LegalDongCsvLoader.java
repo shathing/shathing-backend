@@ -61,7 +61,7 @@ public class LegalDongCsvLoader implements ApplicationRunner {
                     throw new IllegalStateException("Unexpected CSV format: " + line);
                 }
 
-                String code = columns[0].trim();
+                String fullCode = columns[0].trim();
                 String sidoName = columns[1].trim();
                 String sigunguName = columns[2].trim();
                 String eupMyeonDongName = columns[3].trim();
@@ -72,6 +72,7 @@ public class LegalDongCsvLoader implements ApplicationRunner {
                     continue;
                 }
 
+                String code = fullCode.substring(0, 8);
                 batchArgs.add(new Object[]{code, sidoName, emptyToNull(sigunguName), eupMyeonDongName});
 
                 if (batchArgs.size() == BATCH_SIZE) {

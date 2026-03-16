@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class LegalDong {
 
     @Id
-    @Column(name = "code", nullable = false, length = 10)
+    @Column(name = "code", nullable = false, length = 8)
     private String code;
 
     @Column(name = "sido_name", nullable = false)
