@@ -24,6 +24,7 @@ public class SecurityConfig {
 			"/auth/send-email",
 			"/auth/verify-token",
 			"/auth/refresh",
+			"/categories",
 			"/legal-dongs"
 	};
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;

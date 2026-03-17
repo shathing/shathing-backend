@@ -1,0 +1,33 @@
+package com.shathing.backend.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "category")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Category {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String name;
+
+    @Column(name = "display_order", nullable = false)
+    private int displayOrder;
+
+    public Category(String name, int displayOrder) {
+        this.name = name;
+        this.displayOrder = displayOrder;
+    }
+}
