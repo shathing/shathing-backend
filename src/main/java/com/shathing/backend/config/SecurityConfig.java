@@ -25,7 +25,9 @@ public class SecurityConfig {
 			"/auth/verify-token",
 			"/auth/refresh",
 			"/categories",
-			"/legal-dongs"
+			"/legal-dongs",
+			"/share/posts",
+			"/share/posts/*"
 	};
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
