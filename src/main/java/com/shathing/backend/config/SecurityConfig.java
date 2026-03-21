@@ -2,6 +2,7 @@ package com.shathing.backend.config;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -30,6 +31,8 @@ public class SecurityConfig {
 			"/share/posts/*"
 	};
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	@Value("${APP_FRONTEND_URL}")
+	private String appFrontendUrl;
 
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -60,7 +63,7 @@ public class SecurityConfig {
 	@Bean
 	protected CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.addAllowedOrigin("http://localhost:3000");
+		configuration.addAllowedOrigin(appFrontendUrl);
 		configuration.addAllowedHeader("*");
 		configuration.addAllowedMethod("*");
 		configuration.setAllowCredentials(true);
