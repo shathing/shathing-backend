@@ -31,6 +31,8 @@ public class MemberController {
     private boolean cookieSecure;
     @Value("${COOKIE_SAMESITE:Lax}")
     private String cookieSameSite;
+    @Value("${COOKIE_DOMAIN:}")
+    private String cookieDomain;
     @Value("${JWT_ACCESS_TOKEN_EXPIRATION_SECONDS}")
     private long accessTokenExpirationSeconds;
     @Value("${JWT_REFRESH_TOKEN_EXPIRATION_SECONDS}")
@@ -77,12 +79,17 @@ public class MemberController {
     }
 
     private ResponseCookie buildTokenCookie(String name, String value, long maxAgeSeconds) {
-        return ResponseCookie.from(name, value)
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from(name, value)
                 .httpOnly(true)
                 .secure(cookieSecure)
                 .sameSite(cookieSameSite)
                 .path("/")
-                .maxAge(Duration.ofSeconds(maxAgeSeconds))
-                .build();
+                .maxAge(Duration.ofSeconds(maxAgeSeconds));
+
+        if (!cookieDomain.isBlank()) {
+            cookieBuilder.domain(cookieDomain);
+        }
+
+        return cookieBuilder.build();
     }
 }
