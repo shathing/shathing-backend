@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HttpBasicConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,6 +19,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -55,13 +57,18 @@ public class SecurityConfig {
 						.requestMatchers(WHITELIST)
 						.permitAll()
 						.anyRequest()
-						.authenticated()
+						.permitAll()
 				)
 				.exceptionHandling(ex -> ex
 						.authenticationEntryPoint((request, response, authException) -> {
 							response.setContentType("application/json;charset=UTF-8");
 							response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-							response.getWriter().write("{\"code\":\"AF\",\"message\":\"Authorization Fail\"}");
+							response.getWriter().write("{\"code\":401,\"message\":\"Unauthorized\"}");
+						})
+						.accessDeniedHandler((request, response, accessDeniedException) -> {
+							response.setContentType("application/json;charset=UTF-8");
+							response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+							response.getWriter().write("{\"code\":403,\"message\":\"Forbidden\"}");
 						})
 				)
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
