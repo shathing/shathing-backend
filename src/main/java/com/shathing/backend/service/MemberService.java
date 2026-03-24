@@ -119,9 +119,35 @@ public class MemberService {
         }
 
         emailAuthTokenRepository.delete(emailAuthToken);
-        String accessToken = jwtProvider.createAccessToken(member);
-        String refreshToken = jwtProvider.createRefreshToken(member);
-        return new AuthTokenResponse(accessToken, refreshToken);
+        return issueAuthTokens(member);
+    }
+
+    @Transactional
+    public AuthTokenResponse loginWithGoogleOAuth(String email, boolean emailVerified) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Google 계정 이메일이 없습니다.");
+        }
+        if (!emailVerified) {
+            throw new IllegalArgumentException("Google 이메일 인증이 완료되지 않았습니다.");
+        }
+
+        Member member = memberRepository.findByEmail(email)
+                .orElseGet(() -> memberRepository.save(
+                        Member.builder()
+                                .email(email)
+                                .username(extractUsername(email))
+                                .status(MemberStatus.ACTIVE)
+                                .build()
+                ));
+
+        if (member.getStatus() == MemberStatus.PENDING) {
+            member.activate();
+        }
+        if (member.getStatus() == MemberStatus.SUSPENDED || member.getStatus() == MemberStatus.DELETED) {
+            throw new IllegalStateException("로그인할 수 없는 계정 상태입니다.");
+        }
+
+        return issueAuthTokens(member);
     }
 
     @Transactional(readOnly = true)
@@ -178,5 +204,11 @@ public class MemberService {
     public int cleanupOldEmailAuthTokens() {
         Instant now = Instant.now();
         return emailAuthTokenRepository.deleteByExpiresAtBefore(now);
+    }
+
+    private AuthTokenResponse issueAuthTokens(Member member) {
+        String accessToken = jwtProvider.createAccessToken(member);
+        String refreshToken = jwtProvider.createRefreshToken(member);
+        return new AuthTokenResponse(accessToken, refreshToken);
     }
 }

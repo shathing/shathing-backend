@@ -2,6 +2,19 @@ spring:
   application:
     name: backend
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope:
+              - openid
+              - profile
+              - email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+
   profiles:
     default: local
 
@@ -32,6 +45,9 @@ app:
   legal-dong:
     initialize-on-startup: false
     csv-path: data/국토교통부_전국 법정동_20250807.csv
+
+server:
+  forward-headers-strategy: framework
 
 R2_ENDPOINT: ${R2_ENDPOINT:}
 R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:}

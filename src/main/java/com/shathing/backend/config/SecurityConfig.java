@@ -26,12 +26,16 @@ public class SecurityConfig {
 			"/auth/verify-token",
 			"/auth/refresh",
 			"/auth/logout",
+			"/oauth2/**",
+			"/login/oauth2/**",
 			"/categories",
 			"/legal-dongs",
 			"/share/posts",
 			"/share/posts/*"
 	};
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+	private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+	private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 	@Value("${APP_FRONTEND_URL}")
 	private String appFrontendUrl;
 
@@ -43,7 +47,10 @@ public class SecurityConfig {
 				.csrf(AbstractHttpConfigurer::disable)
 				.httpBasic(HttpBasicConfigurer::disable)
 				.sessionManagement(session -> session
-						.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+						.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+				.oauth2Login(oauth2 -> oauth2
+						.successHandler(oAuth2LoginSuccessHandler)
+						.failureHandler(oAuth2LoginFailureHandler))
 				.authorizeHttpRequests(request -> request
 						.requestMatchers(WHITELIST)
 						.permitAll()
