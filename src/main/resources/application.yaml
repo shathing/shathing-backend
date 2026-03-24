@@ -13,7 +13,7 @@ spring:
               - openid
               - profile
               - email
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            redirect-uri: ${APP_API_URL}/login/oauth2/code/google
 
   profiles:
     default: local
