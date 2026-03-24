@@ -73,6 +73,13 @@ public class MemberController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/auth/logout")
+    public ResponseEntity<Void> logout(HttpServletResponse servletResponse) {
+        servletResponse.addHeader(HttpHeaders.SET_COOKIE, buildDeleteCookie(ACCESS_TOKEN).toString());
+        servletResponse.addHeader(HttpHeaders.SET_COOKIE, buildDeleteCookie(REFRESH_TOKEN).toString());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/me")
     public ResponseEntity<MemberResponse> getMember(@AuthenticationPrincipal Long memberId) {
         return ResponseEntity.ok(memberService.getMember(memberId));
@@ -85,6 +92,21 @@ public class MemberController {
                 .sameSite(cookieSameSite)
                 .path("/")
                 .maxAge(Duration.ofSeconds(maxAgeSeconds));
+
+        if (!cookieDomain.isBlank()) {
+            cookieBuilder.domain(cookieDomain);
+        }
+
+        return cookieBuilder.build();
+    }
+
+    private ResponseCookie buildDeleteCookie(String name) {
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from(name, "")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite(cookieSameSite)
+                .path("/")
+                .maxAge(Duration.ZERO);
 
         if (!cookieDomain.isBlank()) {
             cookieBuilder.domain(cookieDomain);

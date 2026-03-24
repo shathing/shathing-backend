@@ -25,6 +25,7 @@ public class SecurityConfig {
 			"/auth/send-email",
 			"/auth/verify-token",
 			"/auth/refresh",
+			"/auth/logout",
 			"/categories",
 			"/legal-dongs",
 			"/share/posts",
