@@ -48,9 +48,9 @@ spring:
 
 app:
   category:
-    initialize-on-startup: %{CATEGORY}
+    initialize-on-startup: ${CATEGORY:false}
   region:
-    initialize-on-startup: ${REGION}
+    initialize-on-startup: ${REGION:false}
     korea:
       csv-path: data/국토교통부_전국 법정동_20250807.csv
     us:
