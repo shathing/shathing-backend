@@ -16,6 +16,13 @@ public class RegionService {
     private final RegionRepository regionRepository;
 
     @Transactional(readOnly = true)
+    public RegionResponse getRegion(Long regionId) {
+        Region region = regionRepository.findById(regionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 지역입니다."));
+        return toResponse(region);
+    }
+
+    @Transactional(readOnly = true)
     public List<RegionResponse> getRegions(String countryCode, String search) {
         String normalizedCountryCode = normalizeCountryCode(countryCode);
         String normalizedSearch = normalizeSearch(search);

@@ -16,6 +16,11 @@ public class RegionController {
 
     private final RegionService regionService;
 
+    @GetMapping("/region")
+    public ResponseEntity<RegionResponse> getRegion(@RequestParam Long regionId) {
+        return ResponseEntity.ok(regionService.getRegion(regionId));
+    }
+
     @GetMapping("/regions")
     public ResponseEntity<List<RegionResponse>> getRegions(
             @RequestParam(required = false) String countryCode,

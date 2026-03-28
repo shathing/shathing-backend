@@ -31,6 +31,7 @@ public class SecurityConfig {
 			"/oauth2/**",
 			"/login/oauth2/**",
 			"/categories",
+			"/region",
 			"/regions",
 			"/share/posts",
 			"/share/posts/*"
