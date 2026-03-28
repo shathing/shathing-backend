@@ -16,18 +16,36 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Category {
 
+    private static final String UNITED_STATES_COUNTRY_CODE = "US";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String name;
+    @Column(name = "name_kr", unique = true)
+    private String nameKr;
+
+    @Column(name = "name_us")
+    private String nameUs;
 
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
 
-    public Category(String name, int displayOrder) {
-        this.name = name;
+    public Category(String nameKr, String nameUs, int displayOrder) {
+        this.nameKr = nameKr;
+        this.nameUs = nameUs;
         this.displayOrder = displayOrder;
+    }
+
+    public void updateNames(String nameKr, String nameUs) {
+        this.nameKr = nameKr;
+        this.nameUs = nameUs;
+    }
+
+    public String getDisplayName(String countryCode) {
+        if (UNITED_STATES_COUNTRY_CODE.equalsIgnoreCase(countryCode) && nameUs != null && !nameUs.isBlank()) {
+            return nameUs;
+        }
+        return nameKr;
     }
 }

@@ -110,7 +110,7 @@ public class SharedItemService {
                 sharedItem.getPhotoUrls(),
                 new SharedItemResponse.CategoryInfo(
                         sharedItem.getCategory().getId(),
-                        sharedItem.getCategory().getName()
+                        sharedItem.getCategory().getDisplayName(sharedItem.getRegion().getCountryCode())
                 ),
                 new SharedItemResponse.RegionInfo(
                         sharedItem.getRegion().getId(),
