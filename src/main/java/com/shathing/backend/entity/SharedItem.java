@@ -46,8 +46,8 @@ public class SharedItem extends BaseTimeEntity {
     private Category category;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "legal_dong_code", nullable = false)
-    private LegalDong legalDong;
+    @JoinColumn(name = "region_id", nullable = false)
+    private Region region;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "member_id", nullable = false)
@@ -58,14 +58,14 @@ public class SharedItem extends BaseTimeEntity {
             String content,
             List<String> photoUrls,
             Category category,
-            LegalDong legalDong,
+            Region region,
             Member member
     ) {
         this.title = title;
         this.content = content;
         this.photoUrls.addAll(photoUrls);
         this.category = category;
-        this.legalDong = legalDong;
+        this.region = region;
         this.member = member;
     }
 }

@@ -15,7 +15,7 @@ public class SharedItemResponse {
     private String content;
     private List<String> photoUrls;
     private CategoryInfo category;
-    private LegalDongInfo legalDong;
+    private RegionInfo region;
     private MemberInfo member;
     private Instant createdDate;
 
@@ -28,11 +28,12 @@ public class SharedItemResponse {
 
     @Getter
     @AllArgsConstructor
-    public static class LegalDongInfo {
-        private String code;
-        private String sidoName;
-        private String sigunguName;
-        private String eupMyeonDongName;
+    public static class RegionInfo {
+        private Long id;
+        private String countryCode;
+        private int depth;
+        private String name;
+        private String fullName;
     }
 
     @Getter

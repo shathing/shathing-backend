@@ -49,9 +49,13 @@ spring:
 app:
   category:
     initialize-on-startup: false
-  legal-dong:
+  region:
     initialize-on-startup: false
-    csv-path: data/국토교통부_전국 법정동_20250807.csv
+    korea:
+      csv-path: data/국토교통부_전국 법정동_20250807.csv
+    us:
+      states-path: data/2025_Gaz_state_national.txt
+      counties-path: data/2025_Gaz_counties_national.txt
 
 server:
   forward-headers-strategy: framework

@@ -21,9 +21,9 @@ public class CreateSharedItemRequest {
     @NotEmpty
     private List<@NotBlank String> photoUrls;
 
-    @NotBlank
-    private String legalDongCode;
-
     @NotNull
     private Long categoryId;
+
+    @NotNull
+    private Long regionId;
 }

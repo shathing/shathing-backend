@@ -5,8 +5,11 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class LegalDongItemResponse {
+public class RegionResponse {
 
-    private String code;
+    private Long id;
+    private String countryCode;
+    private int depth;
     private String name;
+    private String fullName;
 }

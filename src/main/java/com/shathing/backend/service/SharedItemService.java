@@ -5,12 +5,12 @@ import com.shathing.backend.dto.response.CreateSharedItemResponse;
 import com.shathing.backend.dto.response.PageResponse;
 import com.shathing.backend.dto.response.SharedItemResponse;
 import com.shathing.backend.entity.Category;
-import com.shathing.backend.entity.LegalDong;
 import com.shathing.backend.entity.Member;
+import com.shathing.backend.entity.Region;
 import com.shathing.backend.entity.SharedItem;
 import com.shathing.backend.repository.CategoryRepository;
-import com.shathing.backend.repository.LegalDongRepository;
 import com.shathing.backend.repository.MemberRepository;
+import com.shathing.backend.repository.RegionRepository;
 import com.shathing.backend.repository.SharedItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,7 @@ public class SharedItemService {
     private final SharedItemRepository sharedItemRepository;
     private final MemberRepository memberRepository;
     private final CategoryRepository categoryRepository;
-    private final LegalDongRepository legalDongRepository;
+    private final RegionRepository regionRepository;
 
     @Transactional
     public CreateSharedItemResponse createSharedItem(Long memberId, CreateSharedItemRequest request) {
@@ -38,15 +39,15 @@ public class SharedItemService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 카테고리입니다."));
-        LegalDong legalDong = legalDongRepository.findById(request.getLegalDongCode())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 법정동입니다."));
+        Region region = regionRepository.findById(request.getRegionId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 지역입니다."));
 
         SharedItem sharedItem = sharedItemRepository.save(new SharedItem(
                 request.getTitle(),
                 request.getContent(),
                 request.getPhotoUrls(),
                 category,
-                legalDong,
+                region,
                 member
         ));
 
@@ -54,10 +55,10 @@ public class SharedItemService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<SharedItemResponse> getSharedItems(Long categoryId, String legalDongCode, int page, int size) {
+    public PageResponse<SharedItemResponse> getSharedItems(Long categoryId, Long regionId, int page, int size) {
         int normalizedPage = Math.max(page, 0);
         int normalizedSize = Math.min(Math.max(size, 1), 100);
-        String normalizedLegalDongCode = normalizeLegalDongCode(legalDongCode);
+        List<Long> regionIds = resolveRegionIds(regionId);
 
         PageRequest pageable = PageRequest.of(
                 normalizedPage,
@@ -66,18 +67,14 @@ public class SharedItemService {
         );
 
         Page<SharedItem> sharedItemPage;
-        if (categoryId != null && normalizedLegalDongCode != null) {
-            sharedItemPage = sharedItemRepository.findPageByCategoryIdAndLegalDongCodePrefix(
-                    categoryId,
-                    normalizedLegalDongCode,
-                    pageable
-            );
+        if (categoryId != null && regionIds != null) {
+            sharedItemPage = sharedItemRepository.findAllByCategory_IdAndRegion_IdIn(categoryId, regionIds, pageable);
         } else if (categoryId != null) {
-            sharedItemPage = sharedItemRepository.findPageByCategoryId(categoryId, pageable);
-        } else if (normalizedLegalDongCode != null) {
-            sharedItemPage = sharedItemRepository.findPageByLegalDongCodePrefix(normalizedLegalDongCode, pageable);
+            sharedItemPage = sharedItemRepository.findAllByCategory_Id(categoryId, pageable);
+        } else if (regionIds != null) {
+            sharedItemPage = sharedItemRepository.findAllByRegion_IdIn(regionIds, pageable);
         } else {
-            sharedItemPage = sharedItemRepository.findAllForPage(pageable);
+            sharedItemPage = sharedItemRepository.findAll(pageable);
         }
 
         List<Long> ids = sharedItemPage.getContent().stream()
@@ -115,11 +112,12 @@ public class SharedItemService {
                         sharedItem.getCategory().getId(),
                         sharedItem.getCategory().getName()
                 ),
-                new SharedItemResponse.LegalDongInfo(
-                        sharedItem.getLegalDong().getCode(),
-                        sharedItem.getLegalDong().getSidoName(),
-                        sharedItem.getLegalDong().getSigunguName(),
-                        sharedItem.getLegalDong().getEupMyeonDongName()
+                new SharedItemResponse.RegionInfo(
+                        sharedItem.getRegion().getId(),
+                        sharedItem.getRegion().getCountryCode(),
+                        sharedItem.getRegion().getDepth(),
+                        sharedItem.getRegion().getName(),
+                        buildRegionFullName(sharedItem.getRegion())
                 ),
                 new SharedItemResponse.MemberInfo(
                         sharedItem.getMember().getId(),
@@ -129,11 +127,33 @@ public class SharedItemService {
         );
     }
 
-    private String normalizeLegalDongCode(String legalDongCode) {
-        if (legalDongCode == null || legalDongCode.isBlank()) {
+    private List<Long> resolveRegionIds(Long regionId) {
+        if (regionId == null) {
             return null;
         }
-        return legalDongCode.trim();
+
+        Region region = regionRepository.findById(regionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 지역입니다."));
+
+        List<Long> regionIds = new ArrayList<>();
+        List<Long> frontier = List.of(region.getId());
+
+        while (!frontier.isEmpty()) {
+            regionIds.addAll(frontier);
+            frontier = regionRepository.findAllByParent_IdIn(frontier).stream()
+                    .map(Region::getId)
+                    .toList();
+        }
+
+        return regionIds;
+    }
+
+    private String buildRegionFullName(Region region) {
+        Region parent = region.getParent();
+        if (parent == null) {
+            return region.getName();
+        }
+        return buildRegionFullName(parent) + " / " + region.getName();
     }
 
     private List<SharedItemResponse> mapInOriginalOrder(List<SharedItem> sharedItems, List<Long> ids) {
