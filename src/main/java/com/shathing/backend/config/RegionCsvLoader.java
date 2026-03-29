@@ -15,8 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -62,9 +66,9 @@ public class RegionCsvLoader implements ApplicationRunner {
             return;
         }
 
-        Map<String, Region> depth1Regions = new LinkedHashMap<>();
-        Map<String, Region> depth2Regions = new LinkedHashMap<>();
-        Map<String, Region> leafRegions = new LinkedHashMap<>();
+        Set<String> depth1Names = new LinkedHashSet<>();
+        Set<String> depth2Keys = new LinkedHashSet<>();
+        Set<String> leafKeys = new LinkedHashSet<>();
 
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
@@ -93,33 +97,22 @@ public class RegionCsvLoader implements ApplicationRunner {
                     continue;
                 }
 
-                Region depth1Region = depth1Regions.computeIfAbsent(
-                        sidoName,
-                        key -> regionRepository.save(new Region(KOREA_COUNTRY_CODE, null, 1, key))
-                );
+                depth1Names.add(sidoName);
 
                 if (sigunguName.isEmpty()) {
-                    String leafKey = sidoName + "|" + eupMyeonDongName;
-                    leafRegions.computeIfAbsent(
-                            leafKey,
-                            key -> regionRepository.save(new Region(KOREA_COUNTRY_CODE, depth1Region, 2, eupMyeonDongName))
-                    );
+                    leafKeys.add(sidoName + "|" + eupMyeonDongName);
                     continue;
                 }
 
                 String depth2Key = sidoName + "|" + sigunguName;
-                Region depth2Region = depth2Regions.computeIfAbsent(
-                        depth2Key,
-                        key -> regionRepository.save(new Region(KOREA_COUNTRY_CODE, depth1Region, 2, sigunguName))
-                );
-
-                String leafKey = depth2Key + "|" + eupMyeonDongName;
-                leafRegions.computeIfAbsent(
-                        leafKey,
-                        key -> regionRepository.save(new Region(KOREA_COUNTRY_CODE, depth2Region, 3, eupMyeonDongName))
-                );
+                depth2Keys.add(depth2Key);
+                leafKeys.add(depth2Key + "|" + eupMyeonDongName);
             }
         }
+
+        Map<String, Region> depth1Regions = saveKoreaDepth1Regions(depth1Names);
+        Map<String, Region> depth2Regions = saveKoreaDepth2Regions(depth2Keys, depth1Regions);
+        saveKoreaLeafRegions(leafKeys, depth1Regions, depth2Regions);
 
         log.info("Loaded Korea regions from {}.", koreaCsvPath);
     }
@@ -153,7 +146,7 @@ public class RegionCsvLoader implements ApplicationRunner {
     }
 
     private Map<String, Region> loadUnitedStatesStates(ClassPathResource resource) throws Exception {
-        Map<String, Region> stateRegionsByGeoid = new LinkedHashMap<>();
+        Map<String, String> stateNamesByGeoid = new LinkedHashMap<>();
 
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
@@ -178,17 +171,26 @@ public class RegionCsvLoader implements ApplicationRunner {
                     continue;
                 }
 
-                stateRegionsByGeoid.put(
-                        geoid,
-                        regionRepository.save(new Region(UNITED_STATES_COUNTRY_CODE, null, 1, name))
-                );
+                stateNamesByGeoid.put(geoid, name);
             }
         }
 
+        List<Region> states = stateNamesByGeoid.values().stream()
+                .map(name -> new Region(UNITED_STATES_COUNTRY_CODE, null, 1, name))
+                .toList();
+        List<Region> savedStates = regionRepository.saveAll(states);
+
+        Map<String, Region> stateRegionsByGeoid = new LinkedHashMap<>();
+        int index = 0;
+        for (String geoid : stateNamesByGeoid.keySet()) {
+            stateRegionsByGeoid.put(geoid, savedStates.get(index++));
+        }
         return stateRegionsByGeoid;
     }
 
     private void loadUnitedStatesCounties(ClassPathResource resource, Map<String, Region> stateRegionsByGeoid) throws Exception {
+        List<Region> counties = new ArrayList<>();
+
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
 
@@ -218,8 +220,72 @@ public class RegionCsvLoader implements ApplicationRunner {
                     throw new IllegalStateException("Missing parent state for county GEOID: " + countyGeoid);
                 }
 
-                regionRepository.save(new Region(UNITED_STATES_COUNTRY_CODE, stateRegion, 2, name));
+                counties.add(new Region(UNITED_STATES_COUNTRY_CODE, stateRegion, 2, name));
             }
         }
+
+        regionRepository.saveAll(counties);
+    }
+
+    private Map<String, Region> saveKoreaDepth1Regions(Set<String> depth1Names) {
+        List<Region> savedDepth1Regions = regionRepository.saveAll(
+                depth1Names.stream()
+                        .map(name -> new Region(KOREA_COUNTRY_CODE, null, 1, name))
+                        .toList()
+        );
+
+        Map<String, Region> depth1Regions = new LinkedHashMap<>();
+        int index = 0;
+        for (String depth1Name : depth1Names) {
+            depth1Regions.put(depth1Name, savedDepth1Regions.get(index++));
+        }
+        return depth1Regions;
+    }
+
+    private Map<String, Region> saveKoreaDepth2Regions(Set<String> depth2Keys, Map<String, Region> depth1Regions) {
+        List<String> orderedDepth2Keys = new ArrayList<>(depth2Keys);
+        List<Region> depth2Regions = orderedDepth2Keys.stream()
+                .map(key -> {
+                    String[] parts = key.split("\\|", 2);
+                    Region parent = depth1Regions.get(parts[0]);
+                    return new Region(KOREA_COUNTRY_CODE, parent, 2, parts[1]);
+                })
+                .toList();
+
+        List<Region> savedDepth2Regions = regionRepository.saveAll(depth2Regions);
+        Map<String, Region> depth2RegionMap = new LinkedHashMap<>();
+        for (int i = 0; i < orderedDepth2Keys.size(); i++) {
+            depth2RegionMap.put(orderedDepth2Keys.get(i), savedDepth2Regions.get(i));
+        }
+        return depth2RegionMap;
+    }
+
+    private void saveKoreaLeafRegions(
+            Set<String> leafKeys,
+            Map<String, Region> depth1Regions,
+            Map<String, Region> depth2Regions
+    ) {
+        List<Region> leafRegions = leafKeys.stream()
+                .map(key -> toKoreaLeafRegion(key, depth1Regions, depth2Regions))
+                .toList();
+
+        regionRepository.saveAll(leafRegions);
+    }
+
+    private Region toKoreaLeafRegion(
+            String key,
+            Map<String, Region> depth1Regions,
+            Map<String, Region> depth2Regions
+    ) {
+        String[] parts = key.split("\\|");
+        if (parts.length == 2) {
+            Region parent = depth1Regions.get(parts[0]);
+            return new Region(KOREA_COUNTRY_CODE, parent, 2, parts[1]);
+        }
+        if (parts.length == 3) {
+            Region parent = depth2Regions.get(parts[0] + "|" + parts[1]);
+            return new Region(KOREA_COUNTRY_CODE, parent, 3, parts[2]);
+        }
+        throw new IllegalStateException("Unexpected Korea leaf key: " + key);
     }
 }
