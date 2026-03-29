@@ -21,22 +21,22 @@ import java.util.UUID;
 @Service
 public class StorageService {
 
-    @Value("${R2_ENDPOINT:}")
+    @Value("${r2.endpoint:}")
     private String r2Endpoint;
 
-    @Value("${R2_ACCESS_KEY_ID:}")
+    @Value("${r2.access-key-id:}")
     private String accessKeyId;
 
-    @Value("${R2_SECRET_ACCESS_KEY:}")
+    @Value("${r2.secret-access-key:}")
     private String secretAccessKey;
 
-    @Value("${R2_BUCKET_NAME:}")
+    @Value("${r2.bucket-name:}")
     private String bucketName;
 
-    @Value("${R2_PUBLIC_BASE_URL:}")
+    @Value("${r2.public-base-url:}")
     private String publicBaseUrl;
 
-    @Value("${R2_PRESIGNED_URL_EXPIRATION_MINUTES:10}")
+    @Value("${r2.presigned-url-expiration-minutes:10}")
     private long presignedUrlExpirationMinutes;
 
     @Transactional(readOnly = true)

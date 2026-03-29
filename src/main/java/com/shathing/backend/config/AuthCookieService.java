@@ -16,15 +16,15 @@ public class AuthCookieService {
     private static final String REFRESH_TOKEN = "refreshToken";
     private static final String SESSION_COOKIE = "JSESSIONID";
 
-    @Value("${COOKIE_SECURE:false}")
+    @Value("${cookie.secure:false}")
     private boolean cookieSecure;
-    @Value("${COOKIE_SAMESITE:Lax}")
+    @Value("${cookie.same-site:Lax}")
     private String cookieSameSite;
-    @Value("${COOKIE_DOMAIN:}")
+    @Value("${cookie.domain:}")
     private String cookieDomain;
-    @Value("${JWT_ACCESS_TOKEN_EXPIRATION_SECONDS}")
+    @Value("${jwt.access-token-expiration-seconds}")
     private long accessTokenExpirationSeconds;
-    @Value("${JWT_REFRESH_TOKEN_EXPIRATION_SECONDS}")
+    @Value("${jwt.refresh-token-expiration-seconds}")
     private long refreshTokenExpirationSeconds;
 
     public void addAuthCookies(HttpServletResponse response, AuthTokenResponse tokenResponse) {

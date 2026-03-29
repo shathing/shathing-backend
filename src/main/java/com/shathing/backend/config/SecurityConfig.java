@@ -39,7 +39,7 @@ public class SecurityConfig {
 	private final JwtAuthenticationFilter jwtAuthenticationFilter;
 	private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 	private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
-	@Value("${APP_FRONTEND_URL}")
+	@Value("${app.frontend-url}")
 	private String appFrontendUrl;
 
 	@Bean

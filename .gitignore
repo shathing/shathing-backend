@@ -39,4 +39,4 @@ out/
 src/main/resources/application-local.yaml
 src/main/generated/
 
-.env
+src/main/resources/.env

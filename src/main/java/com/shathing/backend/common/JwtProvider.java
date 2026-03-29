@@ -22,11 +22,11 @@ public class JwtProvider {
     private static final String REFRESH_TOKEN_TYPE = "refresh";
 
     private final Algorithm algorithm;
-    @Value("${APP_NAME}")
+    @Value("${app.name}")
     private String appName;
-    @Value("${JWT_ACCESS_TOKEN_EXPIRATION_SECONDS}")
+    @Value("${jwt.access-token-expiration-seconds}")
     private long accessTokenExpirationSeconds;
-    @Value("${JWT_REFRESH_TOKEN_EXPIRATION_SECONDS}")
+    @Value("${jwt.refresh-token-expiration-seconds}")
     private long refreshTokenExpirationSeconds;
 
     public String createAccessToken(Member member) {

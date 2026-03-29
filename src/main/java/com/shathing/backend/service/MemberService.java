@@ -37,11 +37,11 @@ public class MemberService {
     private final JwtProvider jwtProvider;
     private final MemberRepository memberRepository;
     private final EmailAuthTokenRepository emailAuthTokenRepository;
-    @Value("${APP_NAME}")
+    @Value("${app.name}")
     private String appName;
-    @Value("${APP_FRONTEND_URL}")
+    @Value("${app.frontend-url}")
     private String appFrontendUrl;
-    @Value("${AUTH_TOKEN_EXPIRATION_SECONDS}")
+    @Value("${auth.token-expiration-seconds}")
     private long authTokenExpirationSeconds;
 
     @Transactional

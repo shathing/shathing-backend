@@ -22,7 +22,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final MemberService memberService;
     private final AuthCookieService authCookieService;
-    @Value("${APP_FRONTEND_URL}")
+    @Value("${app.frontend-url}")
     private String appFrontendUrl;
 
     @Override

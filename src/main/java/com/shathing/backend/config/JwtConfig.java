@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 public class JwtConfig {
 
     @Bean
-    public Algorithm jwtAlgorithm(@Value("${JWT_SECRET}") String jwtSecret) {
+    public Algorithm jwtAlgorithm(@Value("${jwt.secret}") String jwtSecret) {
         return Algorithm.HMAC256(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 }
