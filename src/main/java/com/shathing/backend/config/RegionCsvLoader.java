@@ -9,6 +9,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,8 +31,13 @@ public class RegionCsvLoader implements ApplicationRunner {
 
     private static final String KOREA_COUNTRY_CODE = "KR";
     private static final String UNITED_STATES_COUNTRY_CODE = "US";
+    private static final String INSERT_REGION_SQL = """
+            insert into regions (country_code, parent_id, depth, name)
+            values (?, ?, ?, ?)
+            """;
 
     private final RegionRepository regionRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Value("${app.region.korea.csv-path:}")
     private String koreaCsvPath;
@@ -175,21 +181,26 @@ public class RegionCsvLoader implements ApplicationRunner {
             }
         }
 
-        List<Region> states = stateNamesByGeoid.values().stream()
-                .map(name -> new Region(UNITED_STATES_COUNTRY_CODE, null, 1, name))
-                .toList();
-        List<Region> savedStates = regionRepository.saveAll(states);
+        batchInsertRegions(
+                stateNamesByGeoid.values().stream()
+                        .map(name -> new RegionInsertRow(UNITED_STATES_COUNTRY_CODE, null, 1, name))
+                        .toList()
+        );
+
+        Map<String, Region> statesByName = regionRepository
+                .findAllByCountryCodeAndDepthAndParentIsNullOrderByNameAsc(UNITED_STATES_COUNTRY_CODE, 1)
+                .stream()
+                .collect(LinkedHashMap::new, (map, region) -> map.put(region.getName(), region), Map::putAll);
 
         Map<String, Region> stateRegionsByGeoid = new LinkedHashMap<>();
-        int index = 0;
-        for (String geoid : stateNamesByGeoid.keySet()) {
-            stateRegionsByGeoid.put(geoid, savedStates.get(index++));
+        for (Map.Entry<String, String> entry : stateNamesByGeoid.entrySet()) {
+            stateRegionsByGeoid.put(entry.getKey(), statesByName.get(entry.getValue()));
         }
         return stateRegionsByGeoid;
     }
 
     private void loadUnitedStatesCounties(ClassPathResource resource, Map<String, Region> stateRegionsByGeoid) throws Exception {
-        List<Region> counties = new ArrayList<>();
+        List<RegionInsertRow> counties = new ArrayList<>();
 
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
@@ -220,42 +231,51 @@ public class RegionCsvLoader implements ApplicationRunner {
                     throw new IllegalStateException("Missing parent state for county GEOID: " + countyGeoid);
                 }
 
-                counties.add(new Region(UNITED_STATES_COUNTRY_CODE, stateRegion, 2, name));
+                counties.add(new RegionInsertRow(UNITED_STATES_COUNTRY_CODE, stateRegion.getId(), 2, name));
             }
         }
 
-        regionRepository.saveAll(counties);
+        batchInsertRegions(counties);
     }
 
     private Map<String, Region> saveKoreaDepth1Regions(Set<String> depth1Names) {
-        List<Region> savedDepth1Regions = regionRepository.saveAll(
+        batchInsertRegions(
                 depth1Names.stream()
-                        .map(name -> new Region(KOREA_COUNTRY_CODE, null, 1, name))
+                        .map(name -> new RegionInsertRow(KOREA_COUNTRY_CODE, null, 1, name))
                         .toList()
         );
 
-        Map<String, Region> depth1Regions = new LinkedHashMap<>();
-        int index = 0;
-        for (String depth1Name : depth1Names) {
-            depth1Regions.put(depth1Name, savedDepth1Regions.get(index++));
-        }
-        return depth1Regions;
+        return regionRepository.findAllByCountryCodeAndDepthAndParentIsNullOrderByNameAsc(KOREA_COUNTRY_CODE, 1)
+                .stream()
+                .collect(LinkedHashMap::new, (map, region) -> map.put(region.getName(), region), Map::putAll);
     }
 
     private Map<String, Region> saveKoreaDepth2Regions(Set<String> depth2Keys, Map<String, Region> depth1Regions) {
         List<String> orderedDepth2Keys = new ArrayList<>(depth2Keys);
-        List<Region> depth2Regions = orderedDepth2Keys.stream()
-                .map(key -> {
-                    String[] parts = key.split("\\|", 2);
-                    Region parent = depth1Regions.get(parts[0]);
-                    return new Region(KOREA_COUNTRY_CODE, parent, 2, parts[1]);
-                })
-                .toList();
+        batchInsertRegions(
+                orderedDepth2Keys.stream()
+                        .map(key -> {
+                            String[] parts = key.split("\\|", 2);
+                            Region parent = depth1Regions.get(parts[0]);
+                            return new RegionInsertRow(KOREA_COUNTRY_CODE, parent.getId(), 2, parts[1]);
+                        })
+                        .toList()
+        );
 
-        List<Region> savedDepth2Regions = regionRepository.saveAll(depth2Regions);
+        Map<Long, String> depth1NamesById = depth1Regions.values().stream()
+                .collect(LinkedHashMap::new, (map, region) -> map.put(region.getId(), region.getName()), Map::putAll);
+        List<Region> savedDepth2Regions = regionRepository.findAllByCountryCodeAndDepthAndParent_IdInOrderByNameAsc(
+                KOREA_COUNTRY_CODE,
+                2,
+                depth1NamesById.keySet()
+        );
         Map<String, Region> depth2RegionMap = new LinkedHashMap<>();
-        for (int i = 0; i < orderedDepth2Keys.size(); i++) {
-            depth2RegionMap.put(orderedDepth2Keys.get(i), savedDepth2Regions.get(i));
+        for (Region region : savedDepth2Regions) {
+            String parentName = depth1NamesById.get(region.getParent().getId());
+            String key = parentName + "|" + region.getName();
+            if (depth2Keys.contains(key)) {
+                depth2RegionMap.put(key, region);
+            }
         }
         return depth2RegionMap;
     }
@@ -265,14 +285,14 @@ public class RegionCsvLoader implements ApplicationRunner {
             Map<String, Region> depth1Regions,
             Map<String, Region> depth2Regions
     ) {
-        List<Region> leafRegions = leafKeys.stream()
+        List<RegionInsertRow> leafRegions = leafKeys.stream()
                 .map(key -> toKoreaLeafRegion(key, depth1Regions, depth2Regions))
                 .toList();
 
-        regionRepository.saveAll(leafRegions);
+        batchInsertRegions(leafRegions);
     }
 
-    private Region toKoreaLeafRegion(
+    private RegionInsertRow toKoreaLeafRegion(
             String key,
             Map<String, Region> depth1Regions,
             Map<String, Region> depth2Regions
@@ -280,12 +300,33 @@ public class RegionCsvLoader implements ApplicationRunner {
         String[] parts = key.split("\\|");
         if (parts.length == 2) {
             Region parent = depth1Regions.get(parts[0]);
-            return new Region(KOREA_COUNTRY_CODE, parent, 2, parts[1]);
+            return new RegionInsertRow(KOREA_COUNTRY_CODE, parent.getId(), 2, parts[1]);
         }
         if (parts.length == 3) {
             Region parent = depth2Regions.get(parts[0] + "|" + parts[1]);
-            return new Region(KOREA_COUNTRY_CODE, parent, 3, parts[2]);
+            return new RegionInsertRow(KOREA_COUNTRY_CODE, parent.getId(), 3, parts[2]);
         }
         throw new IllegalStateException("Unexpected Korea leaf key: " + key);
+    }
+
+    private void batchInsertRegions(List<RegionInsertRow> rows) {
+        jdbcTemplate.batchUpdate(
+                INSERT_REGION_SQL,
+                rows,
+                1000,
+                (ps, row) -> {
+                    ps.setString(1, row.countryCode());
+                    if (row.parentId() == null) {
+                        ps.setNull(2, java.sql.Types.BIGINT);
+                    } else {
+                        ps.setLong(2, row.parentId());
+                    }
+                    ps.setInt(3, row.depth());
+                    ps.setString(4, row.name());
+                }
+        );
+    }
+
+    private record RegionInsertRow(String countryCode, Long parentId, int depth, String name) {
     }
 }

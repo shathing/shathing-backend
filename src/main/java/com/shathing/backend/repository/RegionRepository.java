@@ -10,6 +10,14 @@ public interface RegionRepository extends JpaRepository<Region, Long> {
 
     boolean existsByCountryCode(String countryCode);
 
+    List<Region> findAllByCountryCodeAndDepthAndParentIsNullOrderByNameAsc(String countryCode, int depth);
+
+    List<Region> findAllByCountryCodeAndDepthAndParent_IdInOrderByNameAsc(
+            String countryCode,
+            int depth,
+            Collection<Long> parentIds
+    );
+
     List<Region> findAllByParentIsNullOrderByCountryCodeAscNameAsc();
 
     List<Region> findAllByCountryCodeAndParentIsNullOrderByNameAsc(String countryCode);
