@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,9 +56,16 @@ public class SharedItemService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<SharedItemResponse> getSharedItems(Long categoryId, Long regionId, int page, int size) {
+    public PageResponse<SharedItemResponse> getSharedItems(
+            Long categoryId,
+            Long regionId,
+            String search,
+            int page,
+            int size
+    ) {
         int normalizedPage = Math.max(page, 0);
         int normalizedSize = Math.min(Math.max(size, 1), 100);
+        String normalizedSearch = normalizeSearch(search);
         List<Long> regionIds = resolveRegionIds(regionId);
 
         PageRequest pageable = PageRequest.of(
@@ -66,16 +74,10 @@ public class SharedItemService {
                 Sort.by(Sort.Direction.DESC, "createdDate", "id")
         );
 
-        Page<SharedItem> sharedItemPage;
-        if (categoryId != null && regionIds != null) {
-            sharedItemPage = sharedItemRepository.findAllByCategory_IdAndRegion_IdIn(categoryId, regionIds, pageable);
-        } else if (categoryId != null) {
-            sharedItemPage = sharedItemRepository.findAllByCategory_Id(categoryId, pageable);
-        } else if (regionIds != null) {
-            sharedItemPage = sharedItemRepository.findAllByRegion_IdIn(regionIds, pageable);
-        } else {
-            sharedItemPage = sharedItemRepository.findAll(pageable);
-        }
+        Page<SharedItem> sharedItemPage = sharedItemRepository.findAll(
+                buildSpecification(categoryId, regionIds, normalizedSearch),
+                pageable
+        );
 
         List<Long> ids = sharedItemPage.getContent().stream()
                 .map(SharedItem::getId)
@@ -93,6 +95,31 @@ public class SharedItemService {
                 sharedItemPage.getTotalPages(),
                 sharedItemPage.hasNext()
         );
+    }
+
+    private Specification<SharedItem> buildSpecification(Long categoryId, List<Long> regionIds, String search) {
+        Specification<SharedItem> specification = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
+
+        if (categoryId != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("category").get("id"), categoryId));
+        }
+
+        if (regionIds != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    root.get("region").get("id").in(regionIds));
+        }
+
+        if (search != null) {
+            String keyword = "%" + search.toLowerCase() + "%";
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.or(
+                            criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), keyword),
+                            criteriaBuilder.like(criteriaBuilder.lower(root.get("content")), keyword)
+                    ));
+        }
+
+        return specification;
     }
 
     @Transactional(readOnly = true)
@@ -146,6 +173,15 @@ public class SharedItemService {
         }
 
         return regionIds;
+    }
+
+    private String normalizeSearch(String search) {
+        if (search == null) {
+            return null;
+        }
+
+        String normalizedSearch = search.trim();
+        return normalizedSearch.isEmpty() ? null : normalizedSearch;
     }
 
     private String buildRegionFullName(Region region) {
