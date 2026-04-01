@@ -30,6 +30,8 @@ public class SecurityConfig {
 			"/auth/logout",
 			"/oauth2/**",
 			"/login/oauth2/**",
+			"/ws-chat",
+			"/ws-chat/**",
 			"/categories",
 			"/region",
 			"/regions",
