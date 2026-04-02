@@ -1,6 +1,7 @@
 package com.shathing.backend.service;
 
 import com.shathing.backend.dto.request.CreateSharedItemRequest;
+import com.shathing.backend.dto.request.UpdateSharedItemRequest;
 import com.shathing.backend.dto.response.CreateSharedItemResponse;
 import com.shathing.backend.dto.response.PageResponse;
 import com.shathing.backend.dto.response.SharedItemResponse;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +55,31 @@ public class SharedItemService {
         ));
 
         return new CreateSharedItemResponse(sharedItem.getId());
+    }
+
+    @Transactional
+    public SharedItemResponse updateSharedItem(Long memberId, Long id, UpdateSharedItemRequest request) {
+        SharedItem sharedItem = getOwnedSharedItem(memberId, id);
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 카테고리입니다."));
+        Region region = regionRepository.findById(request.getRegionId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 지역입니다."));
+
+        sharedItem.update(
+                request.getTitle(),
+                request.getContent(),
+                request.getPhotoUrls(),
+                category,
+                region
+        );
+
+        return toResponse(sharedItem);
+    }
+
+    @Transactional
+    public void deleteSharedItem(Long memberId, Long id) {
+        SharedItem sharedItem = getOwnedSharedItem(memberId, id);
+        sharedItemRepository.delete(sharedItem);
     }
 
     @Transactional(readOnly = true)
@@ -127,6 +154,15 @@ public class SharedItemService {
         SharedItem sharedItem = sharedItemRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공유 물품입니다."));
         return toResponse(sharedItem);
+    }
+
+    private SharedItem getOwnedSharedItem(Long memberId, Long id) {
+        SharedItem sharedItem = sharedItemRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 공유 물품입니다."));
+        if (!sharedItem.getMember().getId().equals(memberId)) {
+            throw new AccessDeniedException("본인이 작성한 공유 물품만 변경할 수 있습니다.");
+        }
+        return sharedItem;
     }
 
     private SharedItemResponse toResponse(SharedItem sharedItem) {

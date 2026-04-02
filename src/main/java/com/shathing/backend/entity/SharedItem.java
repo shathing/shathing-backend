@@ -68,4 +68,19 @@ public class SharedItem extends BaseTimeEntity {
         this.region = region;
         this.member = member;
     }
+
+    public void update(
+            String title,
+            String content,
+            List<String> photoUrls,
+            Category category,
+            Region region
+    ) {
+        this.title = title;
+        this.content = content;
+        this.photoUrls.clear();
+        this.photoUrls.addAll(photoUrls);
+        this.category = category;
+        this.region = region;
+    }
 }

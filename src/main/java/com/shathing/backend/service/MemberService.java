@@ -154,7 +154,7 @@ public class MemberService {
     public MemberResponse getMember(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
-        return new MemberResponse(member.getEmail(), member.getUsername());
+        return new MemberResponse(member.getId(),member.getEmail(), member.getUsername());
     }
 
     @Transactional(readOnly = true)
