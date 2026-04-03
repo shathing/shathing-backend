@@ -12,6 +12,14 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     Optional<ChatRoom> findByRoomKey(String roomKey);
 
     @Query("""
+            select count(r)
+            from ChatRoom r
+            where r.id = :roomId
+              and (r.memberOne.id = :memberId or r.memberTwo.id = :memberId)
+            """)
+    long countAccessibleRoom(Long roomId, Long memberId);
+
+    @Query("""
             select r
             from ChatRoom r
             join fetch r.memberOne

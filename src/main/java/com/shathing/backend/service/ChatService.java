@@ -12,6 +12,7 @@ import com.shathing.backend.repository.ChatRoomRepository;
 import com.shathing.backend.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -106,7 +107,7 @@ public class ChatService {
         ChatRoom chatRoom = chatRoomRepository.findByIdWithMembers(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 채팅방입니다."));
         if (!chatRoom.isParticipant(memberId)) {
-            throw new IllegalArgumentException("채팅방 참여자가 아닙니다.");
+            throw new AccessDeniedException("채팅방 참여자가 아닙니다.");
         }
         return chatRoom;
     }
