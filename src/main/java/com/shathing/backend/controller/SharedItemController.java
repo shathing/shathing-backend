@@ -59,11 +59,12 @@ public class SharedItemController {
     public ResponseEntity<PageResponse<SharedItemResponse>> getSharedItems(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long regionId,
+            @RequestParam(required = false) String countryCode,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        return ResponseEntity.ok(sharedItemService.getSharedItems(categoryId, regionId, search, page, size));
+        return ResponseEntity.ok(sharedItemService.getSharedItems(categoryId, regionId, countryCode, search, page, size));
     }
 
     @GetMapping("/share/posts/{id}")

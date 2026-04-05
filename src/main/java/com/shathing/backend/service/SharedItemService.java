@@ -86,12 +86,14 @@ public class SharedItemService {
     public PageResponse<SharedItemResponse> getSharedItems(
             Long categoryId,
             Long regionId,
+            String countryCode,
             String search,
             int page,
             int size
     ) {
         int normalizedPage = Math.max(page, 0);
         int normalizedSize = Math.min(Math.max(size, 1), 100);
+        String normalizedCountryCode = normalizeCountryCode(countryCode);
         String normalizedSearch = normalizeSearch(search);
         List<Long> regionIds = resolveRegionIds(regionId);
 
@@ -102,7 +104,7 @@ public class SharedItemService {
         );
 
         Page<SharedItem> sharedItemPage = sharedItemRepository.findAll(
-                buildSpecification(categoryId, regionIds, normalizedSearch),
+                buildSpecification(categoryId, regionIds, normalizedCountryCode, normalizedSearch),
                 pageable
         );
 
@@ -124,7 +126,12 @@ public class SharedItemService {
         );
     }
 
-    private Specification<SharedItem> buildSpecification(Long categoryId, List<Long> regionIds, String search) {
+    private Specification<SharedItem> buildSpecification(
+            Long categoryId,
+            List<Long> regionIds,
+            String countryCode,
+            String search
+    ) {
         Specification<SharedItem> specification = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
 
         if (categoryId != null) {
@@ -135,6 +142,11 @@ public class SharedItemService {
         if (regionIds != null) {
             specification = specification.and((root, query, criteriaBuilder) ->
                     root.get("region").get("id").in(regionIds));
+        }
+
+        if (countryCode != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("region").get("countryCode"), countryCode));
         }
 
         if (search != null) {
@@ -218,6 +230,13 @@ public class SharedItemService {
 
         String normalizedSearch = search.trim();
         return normalizedSearch.isEmpty() ? null : normalizedSearch;
+    }
+
+    private String normalizeCountryCode(String countryCode) {
+        if (countryCode == null || countryCode.isBlank()) {
+            return null;
+        }
+        return countryCode.trim().toUpperCase();
     }
 
     private String buildRegionFullName(Region region) {

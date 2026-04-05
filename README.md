@@ -111,7 +111,7 @@ Cloud Run 다중 인스턴스 환경에서 WebSocket fan-out까지 바로 풀면
 ### 공유글 검색
 
 - `GET /share/posts`
-- `categoryId`, `regionId`, `search`, `page`, `size` 조합 지원
+- `categoryId`, `regionId`, `countryCode`, `search`, `page`, `size` 조합 지원
 - `search`는 제목 + 본문 기준 부분 일치 검색
 - `Specification` 기반 동적 필터 구성
 
