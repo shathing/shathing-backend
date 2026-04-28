@@ -1,10 +1,9 @@
 package com.shathing.backend.config;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.messaging.simp.config.ChannelRegistration;
+import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
@@ -18,9 +17,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final WebSocketHandshakeHandler webSocketHandshakeHandler;
     private final ChatSubscriptionInterceptor chatSubscriptionInterceptor;
 
-    @Value("${app.frontend-url}")
-    private String appFrontendUrl;
-
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         registry.setApplicationDestinationPrefixes("/pub");
@@ -30,7 +26,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws-chat")
-                .setAllowedOrigins(appFrontendUrl)
+                .setAllowedOriginPatterns("*")
                 .addInterceptors(webSocketAuthHandshakeInterceptor)
                 .setHandshakeHandler(webSocketHandshakeHandler);
     }

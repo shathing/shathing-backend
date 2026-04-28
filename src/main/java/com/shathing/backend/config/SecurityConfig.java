@@ -17,6 +17,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -26,6 +28,7 @@ public class SecurityConfig {
 	private static final String[] WHITELIST = {
 			"/auth/send-email",
 			"/auth/verify-token",
+			"/auth/google",
 			"/auth/refresh",
 			"/auth/logout",
 			"/oauth2/**",
@@ -43,6 +46,8 @@ public class SecurityConfig {
 	private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 	@Value("${app.frontend-url}")
 	private String appFrontendUrl;
+	@Value("${app.allowed-origins:}")
+	private String appAllowedOrigins;
 
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -81,12 +86,20 @@ public class SecurityConfig {
 	@Bean
 	protected CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.addAllowedOrigin(appFrontendUrl);
+		configuration.setAllowedOrigins(resolveAllowedOrigins());
 		configuration.addAllowedHeader("*");
 		configuration.addAllowedMethod("*");
 		configuration.setAllowCredentials(true);
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);
 		return source;
+	}
+
+	private java.util.List<String> resolveAllowedOrigins() {
+		String origins = appAllowedOrigins.isBlank() ? appFrontendUrl : appAllowedOrigins;
+		return Arrays.stream(origins.split(","))
+				.map(String::trim)
+				.filter(origin -> !origin.isBlank())
+				.toList();
 	}
 }

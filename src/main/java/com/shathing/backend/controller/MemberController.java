@@ -1,6 +1,7 @@
 package com.shathing.backend.controller;
 
 import com.shathing.backend.config.AuthCookieService;
+import com.shathing.backend.dto.request.GoogleLoginRequest;
 import com.shathing.backend.dto.request.SendAuthEmailRequest;
 import com.shathing.backend.dto.request.VerifyAuthEmailRequest;
 import com.shathing.backend.dto.response.AuthTokenResponse;
@@ -42,6 +43,16 @@ public class MemberController {
 
         authCookieService.addAuthCookies(servletResponse, tokenResponse);
         return ResponseEntity.ok(new VerifyAuthTokenResponse(tokenResponse.getAccessToken()));
+    }
+
+    @PostMapping("/auth/google")
+    public ResponseEntity<AuthTokenResponse> loginWithGoogle(
+            @Valid @RequestBody GoogleLoginRequest request,
+            HttpServletResponse servletResponse
+    ) {
+        AuthTokenResponse tokenResponse = memberService.loginWithGoogleIdToken(request.getIdToken());
+        authCookieService.addAuthCookies(servletResponse, tokenResponse);
+        return ResponseEntity.ok(tokenResponse);
     }
 
     @PostMapping("/auth/refresh")

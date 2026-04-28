@@ -37,6 +37,7 @@ public class MemberService {
     private final JwtProvider jwtProvider;
     private final MemberRepository memberRepository;
     private final EmailAuthTokenRepository emailAuthTokenRepository;
+    private final GoogleIdTokenVerifier googleIdTokenVerifier;
     @Value("${app.name}")
     private String appName;
     @Value("${app.frontend-url}")
@@ -88,7 +89,7 @@ public class MemberService {
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper messageHelper = new MimeMessageHelper(message, true);
-            String htmlContent = "<a href='" + verifyLink + "'>" + title + "</a>";
+            String htmlContent = buildAuthEmailHtml(title, verifyLink, rawToken, request.isFromApp());
 
             messageHelper.setTo(email);
             messageHelper.setSubject(title);
@@ -150,6 +151,12 @@ public class MemberService {
         return issueAuthTokens(member);
     }
 
+    @Transactional
+    public AuthTokenResponse loginWithGoogleIdToken(String idToken) {
+        GoogleIdTokenClaims claims = googleIdTokenVerifier.verify(idToken);
+        return loginWithGoogleOAuth(claims.email(), claims.emailVerified());
+    }
+
     @Transactional(readOnly = true)
     public MemberResponse getMember(Long memberId) {
         Member member = memberRepository.findById(memberId)
@@ -178,6 +185,14 @@ public class MemberService {
     private String extractUsername(String email) {
         String[] split = email.split("@");
         return split[0];
+    }
+
+    private String buildAuthEmailHtml(String title, String verifyLink, String rawToken, boolean fromApp) {
+        if (fromApp) {
+            return "<p>" + title + "을(를) 완료하려면 아래 토큰을 복사해 앱에 입력하세요.</p>" +
+                    "<p><code>" + rawToken + "</code></p>";
+        }
+        return "<a href='" + verifyLink + "'>" + title + "</a>";
     }
 
     private String generateRawToken() {

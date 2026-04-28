@@ -9,4 +9,6 @@ public class SendAuthEmailRequest {
     @NotBlank
     @Email
     private String email;
+
+    private boolean fromApp;
 }

@@ -8,6 +8,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -22,6 +23,9 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final String ACCESS_TOKEN_COOKIE = "accessToken";
+    private static final String BEARER_PREFIX = "Bearer ";
+
     private final JwtProvider jwtProvider;
 
     @Override
@@ -30,9 +34,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        Cookie accessTokenCookie = WebUtils.getCookie(request, "accessToken");
-        if (accessTokenCookie != null) {
-            String token = accessTokenCookie.getValue();
+        String token = resolveAccessToken(request);
+        if (token != null && !token.isBlank()) {
             try {
                 DecodedJWT decodedJWT = jwtProvider.parseAccessToken(token);
                 Long memberId = Long.parseLong(decodedJWT.getSubject());
@@ -46,5 +49,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private String resolveAccessToken(HttpServletRequest request) {
+        String authorizationHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authorizationHeader != null && authorizationHeader.startsWith(BEARER_PREFIX)) {
+            String bearerToken = authorizationHeader.substring(BEARER_PREFIX.length()).trim();
+            if (!bearerToken.isBlank()) {
+                return bearerToken;
+            }
+        }
+
+        Cookie accessTokenCookie = WebUtils.getCookie(request, ACCESS_TOKEN_COOKIE);
+        return accessTokenCookie == null ? null : accessTokenCookie.getValue();
     }
 }
